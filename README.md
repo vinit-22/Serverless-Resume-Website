@@ -13,7 +13,6 @@
 <p align="center">
   <img src="assets/image2.png" alt="Website Output" width="900">
 </p>
----
 
 ## ✨ Project Overview
 
@@ -39,77 +38,9 @@ The frontend is hosted in a **private Amazon S3 bucket** and delivered globally 
 
 # 🏗️ Architecture
 
-```text
-                         👤 User
-                           │
-                           ▼
-                    🌐 Route 53
-                      DNS / Domain
-                           │
-                           ▼
-                    ⚡ CloudFront
-                  CDN + HTTPS + Cache
-                           │
-                           ▼
-                    📦 Amazon S3
-                  🔐 Private Bucket
-                           │
-                           │
-              ┌────────────┘
-              │
-              │ JavaScript API Request
-              ▼
-        ┌───────────────────┐
-        │   API Gateway     │
-        │     GET /count    │
-        └─────────┬─────────┘
-                  │
-                  ▼
-        ┌───────────────────┐
-        │      Lambda       │
-        │ updateVisitorCount│
-        └─────────┬─────────┘
-                  │
-                  ▼
-        ┌───────────────────┐
-        │     DynamoDB      │
-        │   VisitorCount    │
-        └───────────────────┘
-```
-
-### 🔄 Request Flow
-
-```text
-👤 User
-   │
-   ▼
-🌐 Route 53
-   │
-   ▼
-⚡ CloudFront
-   │
-   ▼
-📦 S3
-   │
-   ▼
-📄 Resume Website
-   │
-   └──────→ JavaScript
-               │
-               ▼
-          🚪 API Gateway
-               │
-               ▼
-          λ AWS Lambda
-               │
-               ▼
-          🗄️ DynamoDB
-               │
-               ▼
-          🔢 Updated Count
-```
-
----
+<p align="center">
+  <img src="assets/Architecture.png" alt="Architecture" width="900">
+</p>
 
 # ☁️ AWS Services
 
