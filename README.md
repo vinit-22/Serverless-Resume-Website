@@ -2,13 +2,12 @@
 
 > 🚀 **A production-style serverless resume website built entirely on AWS**, featuring global content delivery, HTTPS, a custom domain, and a real-time visitor counter powered by AWS Lambda and DynamoDB.
 
-![Architecture Diagram](architecture-diagram.svg)
-
 ---
 
-## 🌐 Live Website
+## 🌐 Website Output
 
-🔗 **[thecloudtech.site](https://thecloudtech.site)**
+![Output](assets/image1.png)
+![Output](assets/image2.png)
 
 ---
 
