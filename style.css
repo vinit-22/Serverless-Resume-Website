@@ -1,0 +1,93 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  color: #1a1a2e;
+  background-color: #fafafa;
+  line-height: 1.6;
+}
+
+.header {
+  text-align: center;
+  border-bottom: 3px solid #16213e;
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  margin-bottom: 5px;
+  color: #16213e;
+}
+
+.tagline {
+  font-size: 1.1em;
+  color: #4a4a68;
+  margin: 5px 0;
+}
+
+.contact {
+  font-size: 0.9em;
+  color: #555;
+}
+
+.contact a {
+  color: #16213e;
+  text-decoration: none;
+}
+
+.contact a:hover {
+  text-decoration: underline;
+}
+
+section {
+  margin-bottom: 30px;
+}
+
+h2 {
+  color: #16213e;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+}
+
+article {
+  margin-bottom: 15px;
+}
+
+.dates {
+  font-style: italic;
+  color: #777;
+  margin: 2px 0 8px;
+}
+
+.skills {
+  list-style: none;
+  padding: 0;
+}
+
+.skills li {
+  background: #eef1fa;
+  display: inline-block;
+  padding: 6px 12px;
+  margin: 4px;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #ccc;
+  font-size: 0.9em;
+  color: #555;
+}
+
+#counter {
+  font-weight: bold;
+  color: #16213e;
+}
