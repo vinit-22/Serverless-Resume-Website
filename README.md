@@ -6,9 +6,13 @@
 
 ## 🌐 Website Output
 
-![Output](assets/image1.png)
-![Output](assets/image2.png)
+<p align="center">
+  <img src="assets/image1.png" alt="Website Output" width="900">
+</p>
 
+<p align="center">
+  <img src="assets/image2.png" alt="Website Output" width="900">
+</p>
 ---
 
 ## ✨ Project Overview
