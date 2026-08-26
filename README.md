@@ -1,153 +1,732 @@
-# Cloud Resume Challenge — thecloudtech.site
+# ☁️ Cloud Resume Challenge — `thecloudtech.site`
 
-A serverless resume website with a live visitor counter, built entirely on AWS.
-
-**Live site:** https://thecloudtech.site
+> 🚀 **A production-style serverless resume website built entirely on AWS**, featuring global content delivery, HTTPS, a custom domain, and a real-time visitor counter powered by AWS Lambda and DynamoDB.
 
 ![Architecture Diagram](architecture-diagram.svg)
 
 ---
 
-## What it does
+## 🌐 Live Website
 
-Hosts a personal resume as a static website, served globally over HTTPS via a CDN,
-with a visitor counter that increments on every page load using a serverless backend.
+🔗 **[thecloudtech.site](https://thecloudtech.site)**
 
 ---
 
-## Architecture
+## ✨ Project Overview
 
+This project is a fully **serverless resume website** built using AWS managed services.
+
+The frontend is hosted in a **private Amazon S3 bucket** and delivered globally through **Amazon CloudFront**. DNS is managed using **Amazon Route 53**, while the visitor counter is powered by **API Gateway → Lambda → DynamoDB**.
+
+### 🎯 Key Features
+
+* ☁️ **100% Serverless AWS Architecture**
+* 🌍 **Global Content Delivery with CloudFront**
+* 🔐 **Private S3 Bucket with Origin Access Control**
+* 🔒 **HTTPS using AWS Certificate Manager**
+* 🌐 **Custom Domain using Route 53**
+* 👥 **Live Visitor Counter**
+* ⚡ **Serverless API using API Gateway + Lambda**
+* 🗄️ **DynamoDB for persistent visitor count**
+* 🛡️ **Least-Privilege IAM Permissions**
+* 🚀 **CloudFront Cache Invalidation**
+* 💰 **Low-cost architecture with no EC2**
+
+---
+
+# 🏗️ Architecture
+
+```text
+                         👤 User
+                           │
+                           ▼
+                    🌐 Route 53
+                      DNS / Domain
+                           │
+                           ▼
+                    ⚡ CloudFront
+                  CDN + HTTPS + Cache
+                           │
+                           ▼
+                    📦 Amazon S3
+                  🔐 Private Bucket
+                           │
+                           │
+              ┌────────────┘
+              │
+              │ JavaScript API Request
+              ▼
+        ┌───────────────────┐
+        │   API Gateway     │
+        │     GET /count    │
+        └─────────┬─────────┘
+                  │
+                  ▼
+        ┌───────────────────┐
+        │      Lambda       │
+        │ updateVisitorCount│
+        └─────────┬─────────┘
+                  │
+                  ▼
+        ┌───────────────────┐
+        │     DynamoDB      │
+        │   VisitorCount    │
+        └───────────────────┘
 ```
-User → Route 53 (DNS) → CloudFront (CDN) → S3 (Static Website)
-                                                  │
-                          JS on page calls ───────┼──→ API Gateway → Lambda → DynamoDB
-                                                        ←──────────────────────┘
-                                                          (returns updated count)
-```
 
-## AWS Services Used
+### 🔄 Request Flow
 
-| Service | Role |
-|---|---|
-| **Route 53** | DNS — hosted zone for `thecloudtech.site`, Alias record pointing to CloudFront |
-| **CloudFront** | CDN — serves the site globally over HTTPS, caches static assets |
-| **S3** | Stores and serves the static website files (private bucket, accessed only via CloudFront OAC) |
-| **ACM (Certificate Manager)** | Issues the free SSL/TLS certificate used by CloudFront (must be in `us-east-1`) |
-| **API Gateway** | Exposes an HTTP API (`GET /count`) that the frontend calls |
-| **Lambda** | Runs the backend function that increments and returns the visitor count |
-| **DynamoDB** | Stores the visitor count as a single item (`id: "counter"`) |
-| **IAM** | Least-privilege role for Lambda — only `dynamodb:UpdateItem` / `GetItem` on the `VisitorCount` table |
-
-No EC2 is used anywhere — everything is serverless and scales to zero when idle.
-
----
-
-## Repository / File Structure
-
-```
-frontend/
-  index.html      — resume content + visitor counter element
-  style.css       — page styling
-  script.js       — fetches visitor count from API Gateway on page load
-lambda_function.py            — Lambda code (increments DynamoDB counter)
-lambda-dynamodb-policy.json   — least-privilege IAM policy attached to Lambda's role
-architecture-diagram.svg      — architecture diagram
+```text
+👤 User
+   │
+   ▼
+🌐 Route 53
+   │
+   ▼
+⚡ CloudFront
+   │
+   ▼
+📦 S3
+   │
+   ▼
+📄 Resume Website
+   │
+   └──────→ JavaScript
+               │
+               ▼
+          🚪 API Gateway
+               │
+               ▼
+          λ AWS Lambda
+               │
+               ▼
+          🗄️ DynamoDB
+               │
+               ▼
+          🔢 Updated Count
 ```
 
 ---
 
-## Build Order (what was actually done, step by step)
+# ☁️ AWS Services
 
-### 1. DynamoDB
-- Created table `VisitorCount`, partition key `id` (String)
-- Added a single item: `{ "id": "counter", "count": 0 }`
-
-### 2. Lambda
-- Created function `updateVisitorCount` (Python 3.12)
-- Pasted in code that runs `UpdateItem` (`ADD count :incr`) and returns the new count as JSON
-- Deployed and tested directly in the Lambda console — confirmed count incremented in DynamoDB
-
-### 3. IAM
-- Edited the Lambda execution role's permissions
-- Added an inline policy scoped to only `dynamodb:UpdateItem` and `dynamodb:GetItem` on the `VisitorCount` table ARN (not full DynamoDB access)
-
-### 4. API Gateway
-- Created an **HTTP API** (simpler/cheaper than REST API for this use case)
-- Route: `GET /count` → integrated with `updateVisitorCount` Lambda
-- Enabled CORS (`Access-Control-Allow-Origin: *`, methods `GET, OPTIONS`)
-- Deployed, copied the Invoke URL, and tested it directly in a browser — confirmed JSON `{ "count": N }` response, incrementing on refresh
-
-### 5. Frontend
-- Wrote `index.html`, `style.css`, `script.js`
-- Pasted the real API Gateway URL into `script.js`
-
-### 6. S3
-- Created a private bucket (`thecloudtech.site`), **Block Public Access kept ON**
-- Uploaded the three frontend files
-- Did **not** rely on the S3 static-website endpoint — used the REST API endpoint instead, since it supports Origin Access Control (OAC) and HTTPS
-
-### 7. ACM (SSL Certificate)
-- Requested a public certificate in **us-east-1** (required for CloudFront) for `thecloudtech.site`
-- Used DNS validation — added the CNAME validation record via GoDaddy (later moved to Route 53)
-- Certificate status: **Issued**
-
-### 8. CloudFront
-- Created a distribution with the S3 bucket as origin
-- Origin access: **Origin Access Control (OAC)** — keeps the S3 bucket private; CloudFront auto-generated the required bucket policy
-- Disabled WAF (not needed / avoids extra cost for a personal site)
-- Default root object: `index.html`
-- Added `thecloudtech.site` as an alternate domain name (CNAME) and attached the ACM certificate
-
-### 9. Route 53 (DNS migration)
-- **Issue found:** GoDaddy cannot point a root/apex domain directly to CloudFront (DNS spec requires an A record at the apex, and GoDaddy has no ALIAS/ANAME support). Route 53 solves this with **Alias records**.
-- Created a public hosted zone for `thecloudtech.site` in Route 53
-- Copied the 4 NS records and updated GoDaddy's nameservers to use them (custom nameservers)
-- Waited for nameserver propagation (a few hours)
-- Created an **A record (Alias)** at the root, pointing to the CloudFront distribution
-
-### 10. Cache invalidation
-- After updating site files in S3, CloudFront continued serving the old cached version
-- Fixed by creating a **CloudFront invalidation** (`/*`) each time files are updated — clears the edge cache so changes appear immediately
+| 🔧 Service         | 🎯 Purpose                                  |
+| ------------------ | ------------------------------------------- |
+| 🌐 **Route 53**    | DNS management and root-domain Alias record |
+| ⚡ **CloudFront**   | Global CDN, caching and HTTPS               |
+| 📦 **S3**          | Private static website storage              |
+| 🔒 **ACM**         | SSL/TLS certificate                         |
+| 🚪 **API Gateway** | HTTP API for visitor counter                |
+| λ **Lambda**       | Serverless backend                          |
+| 🗄️ **DynamoDB**   | Visitor counter storage                     |
+| 🛡️ **IAM**        | Least-privilege access control              |
 
 ---
 
-## Cost
+# 📁 Project Structure
 
-Running entirely within AWS Free Tier limits for a low-traffic personal site:
-
-| Item | Cost |
-|---|---|
-| S3, Lambda, DynamoDB, API Gateway, CloudFront, ACM | **$0/month** (well under free-tier limits) |
-| Route 53 hosted zone | **~$0.50/month** |
-| Domain registration (GoDaddy) | Paid separately, not an AWS cost |
-
-WAF and EC2 were deliberately not used — WAF adds ~$5–14/month for protection not needed on a personal resume site, and EC2 would require managing a persistent server unnecessarily.
-
----
-
-## Troubleshooting Log (real issues hit during this build)
-
-- **GoDaddy rejected the ACM validation CNAME for `www`** — GoDaddy's form errored with "Record could not be added" for the `www` validation record while the root domain validated fine. Resolved by dropping `www` support and using only the root domain.
-- **CloudFront returned `AccessDenied` (XML error)** — the S3 bucket policy hadn't picked up CloudFront's OAC permissions. Fixed by copying the auto-generated policy from the CloudFront origin settings into the S3 bucket policy.
-- **Root domain (apex) couldn't point to CloudFront on GoDaddy** — GoDaddy doesn't support ALIAS/ANAME records at the zone apex, only subdomains. Resolved by migrating DNS to Route 53, which supports native Alias records at the root.
-- **Updated HTML not showing after re-upload to S3** — CloudFront was serving a cached copy. Fixed with a CloudFront invalidation (`/*`).
+```text
+☁️ cloud-resume-challenge/
+│
+├── 📂 frontend/
+│   ├── 📄 index.html
+│   ├── 🎨 style.css
+│   └── ⚡ script.js
+│
+├── 🐍 lambda_function.py
+├── 🔐 lambda-dynamodb-policy.json
+└── 📖 README.md
+```
 
 ---
 
-## Interview Summary
+# 🛠️ Implementation
 
-> "I built a serverless resume website using AWS. The site is hosted on S3 and delivered through CloudFront for global performance and HTTPS, with Route 53 managing DNS. I also implemented a visitor counter using API Gateway, Lambda, and DynamoDB, with a least-privilege IAM role scoped to just that one table. Along the way I had to solve a real DNS limitation — my registrar (GoDaddy) couldn't point a root domain directly to CloudFront, so I migrated DNS management to Route 53 to use Alias records. This project reinforced serverless architecture, secure S3/CloudFront integration via Origin Access Control, and cache invalidation strategy."
+## 1️⃣ 🗄️ DynamoDB
 
-### Common interview follow-ups
-- **Why not EC2?** No persistent server needed — serverless scales to zero and costs nothing at this traffic level.
-- **Why CloudFront?** Global caching, HTTPS termination, and lower latency for visitors worldwide.
-- **Why DynamoDB?** Simple key-value access pattern, serverless, scales automatically, free-tier friendly.
-- **Why did the root domain need Route 53?** DNS spec requires an A record at the zone apex; most registrars (including GoDaddy) can't CNAME a bare domain to a CDN. Route 53's Alias record type solves this natively.
-- **What triggers the Lambda?** API Gateway, on `GET /count`, called by the frontend JavaScript on page load.
+Created a DynamoDB table:
+
+```text
+📌 Table: VisitorCount
+🔑 Partition Key: id
+📊 Type: String
+```
+
+Initial item:
+
+```json
+{
+  "id": "counter",
+  "count": 0
+}
+```
+
+The table stores a single visitor-counter item.
 
 ---
 
-## Possible Next Steps
-- Infrastructure as Code (Terraform or AWS SAM/CDK) to make this reproducible
-- CI/CD pipeline (GitHub Actions) to auto-deploy frontend changes to S3 + invalidate CloudFront cache automatically
-- Add `www.thecloudtech.site` support now that DNS is on Route 53 (request a new ACM cert covering both, validate via Route 53's one-click record creation)
+## 2️⃣ λ AWS Lambda
+
+Created the function:
+
+```text
+⚡ updateVisitorCount
+🐍 Runtime: Python 3.12
+```
+
+The function performs an atomic DynamoDB update:
+
+```text
+GET /count
+     │
+     ▼
+API Gateway
+     │
+     ▼
+Lambda
+     │
+     ▼
+DynamoDB
+     │
+     ├── count = count + 1
+     │
+     ▼
+Return updated count
+```
+
+---
+
+## 3️⃣ 🛡️ IAM — Least Privilege
+
+The Lambda execution role was configured with only the permissions required for the counter.
+
+```text
+✅ dynamodb:GetItem
+✅ dynamodb:UpdateItem
+```
+
+Access is restricted specifically to the:
+
+```text
+🗄️ VisitorCount
+```
+
+table.
+
+> 🔐 **Security principle:** Grant only the permissions required to perform the task.
+
+---
+
+## 4️⃣ 🚪 API Gateway
+
+Created an **HTTP API** with:
+
+```text
+GET /count
+```
+
+Request flow:
+
+```text
+🌐 Browser
+    ↓
+🚪 API Gateway
+    ↓
+λ Lambda
+    ↓
+🗄️ DynamoDB
+```
+
+CORS configuration:
+
+```text
+Allowed Origin  → *
+Allowed Methods → GET, OPTIONS
+```
+
+Example response:
+
+```json
+{
+  "count": 42
+}
+```
+
+Every page load increments the counter.
+
+---
+
+## 5️⃣ 🎨 Frontend
+
+Frontend technologies:
+
+```text
+🌐 HTML
+🎨 CSS
+⚡ JavaScript
+```
+
+The JavaScript application calls the API Gateway endpoint when the page loads.
+
+```text
+Page Load
+    ↓
+script.js
+    ↓
+GET /count
+    ↓
+API Gateway
+    ↓
+Lambda
+    ↓
+DynamoDB
+    ↓
+Updated Count
+    ↓
+Display on Website
+```
+
+---
+
+## 6️⃣ 📦 Amazon S3
+
+The website files are stored in a **private S3 bucket**.
+
+```text
+📦 Bucket
+└── thecloudtech.site
+```
+
+### 🔐 Security
+
+```text
+🚫 Public Access
+🚫 S3 Website Endpoint
+
+✅ Block Public Access
+✅ CloudFront OAC
+✅ HTTPS
+```
+
+CloudFront is the only service allowed to access the S3 objects.
+
+---
+
+## 7️⃣ 🔒 AWS Certificate Manager
+
+Created a public SSL/TLS certificate for:
+
+```text
+🔗 thecloudtech.site
+```
+
+Certificate region:
+
+```text
+📍 us-east-1
+```
+
+Validation method:
+
+```text
+DNS Validation
+```
+
+Status:
+
+```text
+✅ Issued
+```
+
+---
+
+## 8️⃣ ⚡ CloudFront
+
+CloudFront was configured as the public entry point for the website.
+
+```text
+🌐 Custom Domain
+      ↓
+⚡ CloudFront
+      ↓
+📦 Private S3
+```
+
+### Configuration
+
+```text
+Origin              → S3
+Origin Access       → OAC
+Default Root Object → index.html
+HTTPS               → Enabled
+WAF                 → Disabled
+Custom Domain       → thecloudtech.site
+```
+
+CloudFront provides:
+
+* 🌍 Global edge locations
+* ⚡ Low-latency delivery
+* 🔒 HTTPS
+* 💾 Edge caching
+* 🔐 Secure S3 access
+
+---
+
+## 9️⃣ 🌐 Route 53
+
+Initially, DNS was managed through GoDaddy.
+
+### ❌ Problem
+
+The root domain could not directly use a standard CNAME record pointing to CloudFront.
+
+```text
+thecloudtech.site
+       │
+       ✖ Standard CNAME
+       │
+       ▼
+CloudFront
+```
+
+### ✅ Solution
+
+DNS management was migrated to Route 53.
+
+```text
+🌐 Route 53
+     │
+     ▼
+A Record — Alias
+     │
+     ▼
+⚡ CloudFront
+```
+
+This allowed the root domain to point directly to the CloudFront distribution.
+
+---
+
+# 🐛 Troubleshooting
+
+Real AWS configuration issues were encountered during the implementation.
+
+### 🔴 1. ACM DNS Validation
+
+**Problem:**
+GoDaddy rejected the ACM validation CNAME for the `www` hostname.
+
+**Solution:**
+The initial implementation was configured using only the root domain.
+
+```text
+✅ thecloudtech.site
+❌ www.thecloudtech.site
+```
+
+---
+
+### 🔴 2. CloudFront `AccessDenied`
+
+**Problem:**
+
+```text
+❌ AccessDenied
+```
+
+CloudFront could not retrieve objects from S3.
+
+**Root Cause:**
+The S3 bucket policy did not correctly allow CloudFront's OAC.
+
+**Solution:**
+Applied the CloudFront-generated OAC bucket policy.
+
+```text
+CloudFront
+    │
+    │ 🔐 OAC
+    ▼
+Private S3
+    │
+    ▼
+index.html
+```
+
+---
+
+### 🔴 3. Root Domain DNS Issue
+
+**Problem:**
+
+GoDaddy could not configure the required root-domain mapping to CloudFront.
+
+**Solution:**
+
+```text
+GoDaddy
+   │
+   │ DNS delegation
+   ▼
+Route 53
+   │
+   │ Alias A Record
+   ▼
+CloudFront
+```
+
+---
+
+### 🔴 4. CloudFront Cache
+
+**Problem:**
+
+Updated HTML files were uploaded to S3, but the old version was still displayed.
+
+**Root Cause:**
+
+CloudFront was serving the cached object.
+
+**Solution:**
+
+Created an invalidation:
+
+```text
+/* 
+```
+
+Result:
+
+```text
+S3 Update
+   ↓
+CloudFront Invalidation
+   ↓
+Edge Cache Cleared
+   ↓
+Updated Website 🚀
+```
+
+---
+
+# 🔐 Security Architecture
+
+```text
+                 🌐 Internet
+                      │
+                      ▼
+                ⚡ CloudFront
+                      │
+                 🔐 OAC
+                      │
+                      ▼
+               📦 Private S3
+                      │
+                      │
+                 🔒 No Public
+                    Access
+```
+
+### Security Measures
+
+* 🔐 S3 Block Public Access enabled
+* 🔒 CloudFront Origin Access Control
+* 🛡️ Least-privilege IAM
+* 🔒 HTTPS everywhere
+* 🚫 No public EC2 server
+* 🎯 Lambda permissions restricted to one DynamoDB table
+
+---
+
+# 🎤 Interview Summary
+
+> 💬 **"I built a serverless resume website using AWS. The frontend is hosted in a private S3 bucket and delivered globally through CloudFront with HTTPS. Route 53 manages the custom domain, and ACM provides the SSL certificate.**
+>
+> **For the visitor counter, I implemented an HTTP API using API Gateway that triggers a Python Lambda function. Lambda atomically increments the visitor count stored in DynamoDB and returns the updated value to the frontend.**
+>
+> **I followed the principle of least privilege by restricting Lambda's IAM permissions to only the required DynamoDB operations on the specific counter table.**
+>
+> **One of the main challenges was configuring the root domain with CloudFront. Since GoDaddy did not support the required apex-domain configuration, I migrated DNS management to Route 53 and used an Alias record. I also resolved CloudFront OAC permission issues and cache invalidation problems."**
+
+---
+
+# ❓ Common Interview Questions
+
+### ❓ Why not EC2?
+
+> Because the application does not require a continuously running server. A serverless architecture reduces infrastructure management, automatically scales, and is more cost-efficient for low traffic.
+
+### ❓ Why CloudFront?
+
+> CloudFront provides global content delivery, caching, HTTPS termination, and secure integration with S3 through Origin Access Control.
+
+### ❓ Why DynamoDB?
+
+> The application has a simple key-value access pattern where a single counter needs to be updated and retrieved. DynamoDB is a natural serverless fit.
+
+### ❓ Why Lambda?
+
+> Lambda executes only when the visitor counter API is called, eliminating the need for a continuously running backend server.
+
+### ❓ What triggers Lambda?
+
+```text
+Browser
+   ↓
+GET /count
+   ↓
+API Gateway
+   ↓
+Lambda
+```
+
+### ❓ Why HTTP API instead of REST API?
+
+> HTTP API provides the functionality required by this project with a simpler architecture and lower cost compared with a REST API.
+
+### ❓ Why keep S3 private?
+
+> To prevent direct public access to the website files. CloudFront accesses the bucket through Origin Access Control.
+
+### ❓ Why Route 53?
+
+> Route 53 provides Alias records that allow the root domain to point directly to AWS resources such as CloudFront.
+
+---
+
+# 🚀 Future Improvements
+
+## 🏗️ Infrastructure as Code
+
+Automate the entire infrastructure using:
+
+```text
+Terraform
+AWS SAM
+AWS CDK
+```
+
+---
+
+## 🔄 CI/CD Pipeline
+
+Implement GitHub Actions:
+
+```text
+👨‍💻 Developer
+     │
+     ▼
+🐙 GitHub Push
+     │
+     ▼
+⚙️ GitHub Actions
+     │
+     ├── 📦 Upload to S3
+     │
+     └── ⚡ CloudFront Invalidation
+             │
+             ▼
+        🌍 Production
+```
+
+---
+
+## 📊 Monitoring
+
+Add:
+
+* 📈 CloudWatch Metrics
+* 📝 CloudWatch Logs
+* 🚨 CloudWatch Alarms
+* 🔍 Application monitoring
+
+---
+
+## 🌐 Custom Domain Enhancement
+
+Add support for:
+
+```text
+thecloudtech.site
+www.thecloudtech.site
+```
+
+using an ACM certificate covering both domains.
+
+---
+
+# 🧠 Skills Demonstrated
+
+### ☁️ AWS / Cloud
+
+`S3` · `CloudFront` · `Route 53` · `ACM` · `API Gateway` · `Lambda` · `DynamoDB`
+
+### ⚙️ DevOps
+
+`IAM` · `CDN` · `DNS` · `Serverless` · `Caching` · `Deployment`
+
+### 🔐 Security
+
+`OAC` · `HTTPS` · `Least Privilege` · `Private S3`
+
+### 💻 Development
+
+`HTML` · `CSS` · `JavaScript` · `Python` · `REST API`
+
+---
+
+# 🏆 Project Highlights
+
+```text
+☁️ Serverless AWS Architecture
+🌍 Global CDN with CloudFront
+🔒 Private S3 + OAC
+🌐 Custom Domain + HTTPS
+👥 Real-time Visitor Counter
+λ Lambda Backend
+🗄️ DynamoDB Storage
+🛡️ Least-Privilege IAM
+🐛 Real-world AWS Troubleshooting
+🚀 Deployment & Cache Management
+```
+
+---
+
+# 🔮 Next Version
+
+The next iteration will automate both infrastructure and deployment:
+
+```text
+                    👨‍💻 Developer
+                         │
+                         ▼
+                    🐙 GitHub
+                         │
+                         ▼
+                  ⚙️ GitHub Actions
+                         │
+                         ▼
+                    🏗️ Terraform
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+        ☁️ AWS Infrastructure    📦 S3
+              │                     │
+              └──────────┬──────────┘
+                         ▼
+                    ⚡ CloudFront
+                         │
+                         ▼
+                    🌍 Production
+```
+
+> ⭐ **This project demonstrates practical experience with AWS serverless architecture, cloud security, DNS, CDN, API integration, IAM, and real-world troubleshooting.**
+
+---
+
+## 🔗 Live Project
+
+🌐 **https://thecloudtech.site**
+
+⭐ *Built with AWS • Serverless • Secure • Scalable • Cost Efficient*
